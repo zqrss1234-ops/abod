@@ -15,12 +15,13 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        brew install xz fakeroot
+        brew install ldid xz fakeroot
 
     - name: Setup Theos
       run: |
         git clone --recursive https://github.com/theos/theos.git $HOME/theos --depth=1
         echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+        echo "$HOME/theos/vendor/lib/CydiaSubstrate.framework" >> $GITHUB_PATH
 
     - name: Download SDK
       run: |
