@@ -32,9 +32,7 @@ jobs:
     - name: Build Tweak (unpackaged)
       run: |
         make clean
-        make
-      env:
-        THEOS: $HOME/theos
+        make THEOS="$THEOS"
 
     - name: Sign with ldid 🔏
       run: |
@@ -46,9 +44,7 @@ jobs:
 
     - name: Package .deb
       run: |
-        make package
-      env:
-        THEOS: $HOME/theos
+        make package THEOS="$THEOS"
 
     - name: Create Release
       run: |
