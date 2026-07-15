@@ -32,7 +32,7 @@ jobs:
     - name: Build & Sign 🔏
       run: |
         make clean
-        make package THEOS="$THEOS"
+        make package THEOS="$THEOS" ARCHS="arm64"
 
     - name: Create Release
       run: |
