@@ -40,7 +40,7 @@ jobs:
           ldid -S "$DYLIB"
           echo "✅ Signed: $DYLIB"
         fi
-        echo "dyilb" > .theos/_/dyilb.txt
+        mkdir -p .theos/_ && echo "dyilb" > .theos/_/dyilb.txt
 
     - name: Package .deb
       run: |
@@ -53,7 +53,6 @@ jobs:
         fi
         cp "$DYLIB" pkg/Library/MobileSubstrate/DynamicLibraries/
         cp abdulilah.plist pkg/Library/MobileSubstrate/DynamicLibraries/
-        cp .theos/_/dyilb.txt pkg/Library/MobileSubstrate/DynamicLibraries/ 2>/dev/null || true
         cd pkg
         tar -czf ../control.tar.gz -C DEBIAN .
         tar -czf ../data.tar.gz -C Library Library
