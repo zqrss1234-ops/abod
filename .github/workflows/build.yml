@@ -15,7 +15,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        brew install ldid xz fakeroot dpkg
+        brew install ldid xz dpkg
 
     - name: Setup Theos
       run: |
@@ -32,7 +32,7 @@ jobs:
     - name: Build & Sign 🔏
       run: |
         make clean
-        make package THEOS="$THEOS" ARCHS="arm64"
+        make package THEOS="$THEOS" ARCHS="arm64" FAKEROOT=""
 
     - name: Create Release
       run: |
