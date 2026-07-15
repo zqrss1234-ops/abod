@@ -1,0 +1,58 @@
+name: Build & Sign
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        brew install ldid xz fakeroot
+        pip3 install pyimg4
+
+    - name: Setup Theos
+      run: |
+        git clone --recursive https://github.com/theos/theos.git $HOME/theos --depth=1
+        echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+
+    - name: Download SDK
+      run: |
+        curl -L https://github.com/theos/sdks/releases/latest/download/iPhoneOS14.5.sdk.tar.xz -o /tmp/sdk.tar.xz
+        mkdir -p $HOME/theos/sdks
+        tar -xzf /tmp/sdk.tar.xz -C $HOME/theos/sdks
+
+    - name: Build Tweak
+      run: |
+        make clean
+        make package
+      env:
+        THEOS: $HOME/theos
+
+    - name: Sign with ldid
+      run: |
+        find packages -name "*.deb" -exec dpkg-deb -e {} deb_extracted \;
+        find . -name "*.dylib" -o -name "abdulilah" | while read f; do
+          ldid -S "$f"
+          echo "Signed: $f"
+        done
+        rm -rf deb_extracted
+
+    - name: Create Release Package
+      run: |
+        mkdir -p release
+        cp -r packages/*.deb release/ 2>/dev/null || true
+        echo "dyilb" > release/signature.txt
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: abdulilah-tweak
+        path: release/
