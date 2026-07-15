@@ -1,0 +1,5 @@
+*.o
+*.dylib
+*.deb
+.build/
+packages/
