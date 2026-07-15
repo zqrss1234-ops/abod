@@ -21,7 +21,6 @@ jobs:
       run: |
         git clone --recursive https://github.com/theos/theos.git $HOME/theos --depth=1
         echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-        echo "$HOME/theos/vendor/lib/CydiaSubstrate.framework" >> $GITHUB_PATH
 
     - name: Download SDK
       run: |
@@ -29,10 +28,40 @@ jobs:
         mkdir -p $HOME/theos/sdks
         tar -xzf /tmp/sdk.tar.xz -C $HOME/theos/sdks
 
-    - name: Build & Sign 🔏
+    - name: Build Tweak
       run: |
         make clean
-        make package THEOS="$THEOS" ARCHS="arm64" DPKG_DEB="$THEOS/vendor/dm.pl" FAKEROOT=""
+        make THEOS="$THEOS" ARCHS="arm64"
+
+    - name: Sign with ldid
+      run: |
+        DYLIB=$(find . -path "*.theos/*" -name "*.dylib" -type f | head -1)
+        if [ -n "$DYLIB" ]; then
+          ldid -S "$DYLIB"
+          echo "✅ Signed: $DYLIB"
+        fi
+        echo "dyilb" > .theos/_/dyilb.txt
+
+    - name: Package .deb
+      run: |
+        mkdir -p packages pkg/DEBIAN pkg/Library/MobileSubstrate/DynamicLibraries
+        cp control pkg/DEBIAN/
+        DYLIB=$(find . -path "*.theos/obj/*" -name "abdulilah.dylib" -type f | head -1)
+        if [ -z "$DYLIB" ]; then
+          echo "❌ No dylib found!"
+          exit 1
+        fi
+        cp "$DYLIB" pkg/Library/MobileSubstrate/DynamicLibraries/
+        cp abdulilah.plist pkg/Library/MobileSubstrate/DynamicLibraries/
+        cp .theos/_/dyilb.txt pkg/Library/MobileSubstrate/DynamicLibraries/ 2>/dev/null || true
+        cd pkg
+        tar -czf ../control.tar.gz -C DEBIAN .
+        tar -czf ../data.tar.gz -C Library Library
+        echo "2.0" > ../debian-binary
+        cd ..
+        ar -rcs packages/abdulilah_2.0_iphoneos-arm.deb debian-binary control.tar.gz data.tar.gz
+        rm -rf pkg debian-binary control.tar.gz data.tar.gz
+        ls -la packages/
 
     - name: Create Release
       run: |
