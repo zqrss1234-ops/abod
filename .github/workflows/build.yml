@@ -15,8 +15,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        brew install ldid xz fakeroot
-        # pyimg4 غير مطلوب حالياً - نستخدم ldid بدلاً منه
+        brew install xz fakeroot
 
     - name: Setup Theos
       run: |
@@ -29,21 +28,9 @@ jobs:
         mkdir -p $HOME/theos/sdks
         tar -xzf /tmp/sdk.tar.xz -C $HOME/theos/sdks
 
-    - name: Build Tweak (unpackaged)
+    - name: Build & Sign 🔏
       run: |
         make clean
-        make THEOS="$THEOS"
-
-    - name: Sign with ldid 🔏
-      run: |
-        find . -path "*.theos/*" -name "*.dylib" | while read f; do
-          ldid -S "$f"
-          echo "✅ Signed: $f"
-        done
-        echo "dyilb" > .theos/_/dyilb.txt
-
-    - name: Package .deb
-      run: |
         make package THEOS="$THEOS"
 
     - name: Create Release
