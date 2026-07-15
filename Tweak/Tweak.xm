@@ -37,12 +37,14 @@ void BHSetGlitchAnimationsDisabled(BOOL disabled);
 @end
 
 static inline UIWindow *ylt_keyWindow(void) {
-    for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
-        if (scene.activationState == UISceneActivationStateForegroundActive) {
-            return [(UIWindowScene *)scene windows].firstObject;
+    if (@available(iOS 13.0, *)) {
+        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if (scene.activationState == UISceneActivationStateForegroundActive) {
+                return [(UIWindowScene *)scene windows].firstObject;
+            }
         }
     }
-    return nil;
+    return [UIApplication sharedApplication].keyWindow;
 }
 
 #define SHARED_STATE @"/tmp/com.abdulilah.state.plist"
@@ -1176,31 +1178,31 @@ static void udpInit(void) {
 
 __attribute__((constructor)) static void ylt_init(void) {
     @autoreleasepool {
-        MSHookFunction(exit, ylt_hook_exit, (void **)&orig_exit);
-        MSHookFunction(abort, ylt_hook_abort, (void **)&orig_abort);
-        MSHookFunction(_exit, ylt_hook__exit, (void **)&orig__exit);
-        MSHookFunction(pthread_cancel, ylt_hook_pthread_cancel, (void **)&orig_pthread_cancel);
-        MSHookFunction(kill, ylt_hook_kill, (void **)&orig_kill);
-        MSHookFunction(raise, ylt_hook_raise, (void **)&orig_raise);
+        MSHookFunction((void *)exit, (void *)ylt_hook_exit, (void **)&orig_exit);
+        MSHookFunction((void *)abort, (void *)ylt_hook_abort, (void **)&orig_abort);
+        MSHookFunction((void *)_exit, (void *)ylt_hook__exit, (void **)&orig__exit);
+        MSHookFunction((void *)pthread_cancel, (void *)ylt_hook_pthread_cancel, (void **)&orig_pthread_cancel);
+        MSHookFunction((void *)kill, (void *)ylt_hook_kill, (void **)&orig_kill);
+        MSHookFunction((void *)raise, (void *)ylt_hook_raise, (void **)&orig_raise);
         
         void *h_objc = dlopen("/usr/lib/libobjc.A.dylib", RTLD_NOW);
         if (h_objc) {
             void *f_throw = dlsym(h_objc, "objc_exception_throw");
-            if (f_throw) MSHookFunction(f_throw, ylt_hook_objc_exception_throw, (void **)&orig_objc_exception_throw);
+            if (f_throw) MSHookFunction((void *)f_throw, (void *)ylt_hook_objc_exception_throw, (void **)&orig_objc_exception_throw);
         }
         void *h_cxx = dlopen("/usr/lib/libc++.1.dylib", RTLD_NOW);
         if (h_cxx) {
             void *f_cxa_t = dlsym(h_cxx, "__cxa_throw");
-            if (f_cxa_t) MSHookFunction(f_cxa_t, ylt_hook_cxa_throw, (void **)&orig_cxa_throw);
+            if (f_cxa_t) MSHookFunction((void *)f_cxa_t, (void *)ylt_hook_cxa_throw, (void **)&orig_cxa_throw);
             void *f_cxa_rt = dlsym(h_cxx, "__cxa_rethrow");
-            if (f_cxa_rt) MSHookFunction(f_cxa_rt, ylt_hook_cxa_rethrow, (void **)&orig_cxa_rethrow);
+            if (f_cxa_rt) MSHookFunction((void *)f_cxa_rt, (void *)ylt_hook_cxa_rethrow, (void **)&orig_cxa_rethrow);
         }
         
-        MSHookFunction(access, ylt_hook_access, (void **)&orig_access);
-        MSHookFunction(dlopen, ylt_hook_dlopen, (void **)&orig_dlopen);
-        MSHookFunction(dlsym, ylt_hook_dlsym, (void **)&orig_dlsym);
-        MSHookFunction(dladdr, ylt_hook_dladdr, (void **)&orig_dladdr);
-        MSHookFunction(fopen, ylt_hook_fopen, (void **)&orig_fopen);
+        MSHookFunction((void *)access, (void *)ylt_hook_access, (void **)&orig_access);
+        MSHookFunction((void *)dlopen, (void *)ylt_hook_dlopen, (void **)&orig_dlopen);
+        MSHookFunction((void *)dlsym, (void *)ylt_hook_dlsym, (void **)&orig_dlsym);
+        MSHookFunction((void *)dladdr, (void *)ylt_hook_dladdr, (void **)&orig_dladdr);
+        MSHookFunction((void *)fopen, (void *)ylt_hook_fopen, (void **)&orig_fopen);
         
         ylt_installBgHook();
         startBgTask();
