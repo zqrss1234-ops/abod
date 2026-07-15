@@ -33,24 +33,17 @@ jobs:
         make clean
         make THEOS="$THEOS" ARCHS="arm64"
 
-    - name: Sign with ldid
-      run: |
-        DYLIB=$(find . -path "*.theos/*" -name "*.dylib" -type f | head -1)
-        if [ -n "$DYLIB" ]; then
-          ldid -S "$DYLIB"
-          echo "✅ Signed: $DYLIB"
-        fi
-        mkdir -p .theos/_ && echo "dyilb" > .theos/_/dyilb.txt
-
     - name: Package .deb
       run: |
-        mkdir -p packages pkg/DEBIAN pkg/Library/MobileSubstrate/DynamicLibraries
-        cp control pkg/DEBIAN/
-        DYLIB=$(find . -path "*.theos/obj/*" -name "abdulilah.dylib" -type f | head -1)
+        DYLIB=$(find .theos -name "abdulilah.dylib" -type f ! -name "*.unsigned" | head -1)
         if [ -z "$DYLIB" ]; then
           echo "❌ No dylib found!"
+          find .theos -name "*.dylib" 2>/dev/null
           exit 1
         fi
+        echo "📦 Using dylib: $DYLIB"
+        mkdir -p packages pkg/DEBIAN pkg/Library/MobileSubstrate/DynamicLibraries
+        cp control pkg/DEBIAN/
         cp "$DYLIB" pkg/Library/MobileSubstrate/DynamicLibraries/
         cp abdulilah.plist pkg/Library/MobileSubstrate/DynamicLibraries/
         cd pkg
