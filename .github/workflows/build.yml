@@ -16,7 +16,7 @@ jobs:
     - name: Install Dependencies
       run: |
         brew install ldid xz fakeroot
-        pip3 install pyimg4
+        # pyimg4 غير مطلوب حالياً - نستخدم ldid بدلاً منه
 
     - name: Setup Theos
       run: |
@@ -29,27 +29,33 @@ jobs:
         mkdir -p $HOME/theos/sdks
         tar -xzf /tmp/sdk.tar.xz -C $HOME/theos/sdks
 
-    - name: Build Tweak
+    - name: Build Tweak (unpackaged)
       run: |
         make clean
+        make
+      env:
+        THEOS: $HOME/theos
+
+    - name: Sign with ldid 🔏
+      run: |
+        find . -path "*.theos/*" -name "*.dylib" | while read f; do
+          ldid -S "$f"
+          echo "✅ Signed: $f"
+        done
+        echo "dyilb" > .theos/_/dyilb.txt
+
+    - name: Package .deb
+      run: |
         make package
       env:
         THEOS: $HOME/theos
 
-    - name: Sign with ldid
-      run: |
-        find packages -name "*.deb" -exec dpkg-deb -e {} deb_extracted \;
-        find . -name "*.dylib" -o -name "abdulilah" | while read f; do
-          ldid -S "$f"
-          echo "Signed: $f"
-        done
-        rm -rf deb_extracted
-
-    - name: Create Release Package
+    - name: Create Release
       run: |
         mkdir -p release
-        cp -r packages/*.deb release/ 2>/dev/null || true
-        echo "dyilb" > release/signature.txt
+        cp packages/*.deb release/ 2>/dev/null || true
+        echo "Signed by: dyilb" > release/signature.txt
+        date >> release/signature.txt
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
