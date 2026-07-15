@@ -82,6 +82,23 @@ static NSString *const kLicenseValidKey = @"com.license.isValid";
     return result;
 }
 
+- (void)validateKey:(NSString *)key completion:(void (^)(BOOL valid, NSString *message))completion {
+    if (!key || key.length == 0) {
+        if (completion) completion(NO, @"الرجاء إدخال رمز صالح");
+        return;
+    }
+    if ([self validateLocalCode:key]) {
+        [[NSUserDefaults standardUserDefaults] setObject:key forKey:kStoredLicenseKey];
+        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:kLicenseValidKey];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+        if (completion) completion(YES, @"تم التفعيل بنجاح");
+        return;
+    }
+    [self sendActivationRequest:key completion:^(BOOL valid, NSString *message) {
+        if (completion) completion(valid, message);
+    }];
+}
+
 - (void)checkLicense {
     if ([self isLicenseValid]) return;
 
@@ -152,6 +169,78 @@ static NSString *const kLicenseValidKey = @"com.license.isValid";
 
     [self.currentAlert addAction:activateAction];
     [rootVC presentViewController:self.currentAlert animated:YES completion:nil];
+}
+
+- (void)sendActivationRequest:(NSString *)key completion:(void (^)(BOOL valid, NSString *message))completion {
+    NSString *urlString = [NSString stringWithFormat:@"%@/api/validate", kLicenseServerURL];
+    NSURL *url = [NSURL URLWithString:urlString];
+
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    request.HTTPMethod = @"POST";
+    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    request.timeoutInterval = 15;
+
+    NSDictionary *body = @{
+        @"key": key,
+        @"deviceId": [self getDeviceId],
+        @"deviceName": [self getDeviceName],
+        @"deviceModel": [self getDeviceModel],
+        @"iosVersion": [self getIOSVersion],
+        @"bundleId": [[NSBundle mainBundle] bundleIdentifier] ?: @"unknown"
+    };
+
+    NSError *jsonError;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:body options:0 error:&jsonError];
+    if (!jsonData) {
+        if (completion) completion(NO, @"خطأ في الاتصال");
+        return;
+    }
+    request.HTTPBody = jsonData;
+
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession]
+        dataTaskWithRequest:request
+        completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+            if (error) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (completion) completion(NO, @"فشل الاتصال بالخادم");
+                });
+                return;
+            }
+            if (!data) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (completion) completion(NO, @"لا يوجد رد من الخادم");
+                });
+                return;
+            }
+
+            NSError *parseError;
+            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data
+                options:0 error:&parseError];
+            if (!json) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (completion) completion(NO, @"خطأ في قراءة الرد");
+                });
+                return;
+            }
+
+            BOOL valid = [json[@"valid"] boolValue];
+            BOOL needsApproval = [json[@"needsApproval"] boolValue];
+            NSString *message = json[@"message"] ?: @"";
+
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (valid) {
+                    [[NSUserDefaults standardUserDefaults] setObject:key forKey:kStoredLicenseKey];
+                    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:kLicenseValidKey];
+                    [[NSUserDefaults standardUserDefaults] synchronize];
+                    if (completion) completion(YES, message);
+                } else if (needsApproval) {
+                    if (completion) completion(NO, @"بانتظار موافقة المطور");
+                } else {
+                    if (completion) completion(NO, message.length > 0 ? message : @"رمز غير صالح");
+                }
+            });
+        }];
+    [task resume];
 }
 
 - (void)sendActivationRequest:(NSString *)key {
