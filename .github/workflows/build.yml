@@ -15,7 +15,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        brew install ldid xz dpkg
+        brew install ldid xz
 
     - name: Setup Theos
       run: |
