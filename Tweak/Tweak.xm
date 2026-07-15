@@ -1063,10 +1063,11 @@ static void startSilentAudio(void) {
     if ([targetView isKindOfClass:[UIButton class]]) {
         UIButton *btn = (UIButton *)targetView;
         [btn sendActionsForControlEvents:UIControlEventTouchUpInside];
-    } else if ([targetView isKindOfClass:[YLTakeMicAlertButton class]]) {
-        YLTakeMicAlertButton *ylb = (YLTakeMicAlertButton *)targetView;
-        [ylb tapActin:nil];
     } else {
+        Class ylClass = objc_getClass("YLTakeMicAlertButton");
+        if (ylClass && [targetView isKindOfClass:ylClass]) {
+            [targetView performSelector:NSSelectorFromString(@"tapActin:") withObject:nil];
+        } else {
         for (UIGestureRecognizer *g in targetView.gestureRecognizers) {
             if ([g isKindOfClass:[UITapGestureRecognizer class]]) {
                 UITapGestureRecognizer *tg = (UITapGestureRecognizer *)g;
@@ -1081,6 +1082,7 @@ static void startSilentAudio(void) {
                 }
             }
         }
+    }
     }
 }
 
