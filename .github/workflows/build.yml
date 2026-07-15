@@ -46,11 +46,9 @@ jobs:
         cp control pkg/DEBIAN/
         cp "$DYLIB" pkg/Library/MobileSubstrate/DynamicLibraries/
         cp abdulilah.plist pkg/Library/MobileSubstrate/DynamicLibraries/
-        cd pkg
-        tar -czf ../control.tar.gz DEBIAN
-        tar -czf ../data.tar.gz Library
-        echo "2.0" > ../debian-binary
-        cd ..
+        cd pkg/DEBIAN && tar -czf ../../control.tar.gz . && cd ../..
+        tar -czf data.tar.gz -C pkg Library
+        echo "2.0" > debian-binary
         ar -rcs packages/abdulilah_2.0_iphoneos-arm.deb debian-binary control.tar.gz data.tar.gz
         rm -rf pkg debian-binary control.tar.gz data.tar.gz
         ls -la packages/
